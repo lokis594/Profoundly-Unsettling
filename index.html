@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#080d10" />
+    <title>PROFOUNDLY UNSETTLING</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23751e27'/%3E%3Cpath d='M13 5h6v8h8v6h-8v8h-6v-8H5v-6h8z' fill='%23ddd8c6'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./css/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <svg class="symbols" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <symbol id="i-pulse" viewBox="0 0 24 24">
+          <path d="M1 13h5l3-7 4 13 3-9 2 3h5" />
+        </symbol>
+        <symbol id="i-play" viewBox="0 0 24 24">
+          <path d="m7 4 13 8-13 8z" fill="currentColor" stroke="none" />
+        </symbol>
+        <symbol id="i-options" viewBox="0 0 24 24">
+          <path
+            d="M3 6h7m4 0h7M3 12h12m4 0h2M3 18h3m4 0h11M10 3v6m5 0v6M7 15v6"
+          />
+        </symbol>
+        <symbol id="i-credits" viewBox="0 0 24 24">
+          <path d="M3 5h18v14H3zM6 10h4m-4 4h4m4-5h4m-4 4h4" />
+        </symbol>
+        <symbol id="i-exit" viewBox="0 0 24 24">
+          <path d="M11 4H4v16h7m-1-8h12m-5-5 5 5-5 5" />
+        </symbol>
+        <symbol id="i-sound" viewBox="0 0 24 24">
+          <path d="M3 9h4l5-4v14l-5-4H3zm12-1q5 4 0 8m3-11q8 7 0 14" />
+        </symbol>
+        <symbol id="i-key" viewBox="0 0 24 24">
+          <path d="M3 6h18v12H3zM6 9h1m3 0h1m3 0h1m3 0h1M7 14h10" />
+        </symbol>
+      </defs>
+    </svg>
+    <canvas
+      id="view"
+      aria-label="Vista en primera persona del hospital"
+    ></canvas>
+    <main id="menu">
+      <canvas
+        id="menu-scene"
+        width="384"
+        height="216"
+        aria-hidden="true"
+      ></canvas>
+      <div class="shade"></div>
+      <div class="scanlines"></div>
+      <header class="top-strip">
+        <span class="version"><i></i> PROTOTYPE V0.1</span>
+      </header>
+      <div class="menu-content">
+        <h1 class="wordmark">
+          <span>PROFOUNDLY</span>
+          <span>UNSETTLING</span>
+        </h1>
+        <nav id="actions" aria-label="Menú principal">
+          <button data-action="play" class="selected">
+            <svg><use href="#i-play" /></svg>PLAY<span class="arrow">›</span>
+          </button>
+          <button data-action="options">
+            <svg><use href="#i-options" /></svg>OPTIONS<span class="arrow"
+              >›</span
+            >
+          </button>
+          <button data-action="credits">
+            <svg><use href="#i-credits" /></svg>CREDITS<span class="arrow"
+              >›</span
+            >
+          </button>
+          <button data-action="exit">
+            <svg><use href="#i-exit" /></svg>EXIT<span class="arrow">›</span>
+          </button>
+        </nav>
+      </div>
+      <footer>
+        <span class="keys"
+          ><kbd>↑</kbd><kbd>↓</kbd> ELEGIR <kbd>↵</kbd> CONFIRMAR</span
+        ><button id="audio-toggle" aria-pressed="false">
+          <svg><use href="#i-sound" /></svg><span>ACTIVAR AUDIO</span>
+        </button>
+      </footer>
+    </main>
+    <div id="hud" hidden>
+      <div class="location">
+        <b id="floor-tag"></b><span id="room-name"></span>
+      </div>
+      <span class="reticle">·</span>
+      <div class="meters">
+        <label
+          >SALUD <progress id="health" max="100"></progress><output></output
+        ></label>
+        <label
+          >ENERGÍA <progress id="stamina" max="100"></progress><output></output
+        ></label>
+        <label
+          >INQUIETUD <progress id="unrest" max="100"></progress><output></output
+        ></label>
+      </div>
+      <div class="torch" id="torch-status"></div>
+      <div id="prompt"></div>
+      <div class="controls-hint" id="hint"></div>
+      <div id="vignette"></div>
+      <div id="wound"></div>
+    </div>
+    <div id="blackout"></div>
+    <dialog id="panel" aria-labelledby="panel-title">
+      <h2 id="panel-title"></h2>
+      <div id="panel-body"></div>
+    </dialog>
+    <noscript>Activa JavaScript para entrar en el hospital.</noscript>
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
