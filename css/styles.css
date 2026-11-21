@@ -40,8 +40,7 @@ footer svg {
   stroke: currentColor;
   stroke-width: 1.8;
 }
-.symbols,
-.sr {
+.symbols {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -55,8 +54,7 @@ footer svg {
 #menu,
 #hud,
 #blackout,
-#fallback-scene,
-.scenery,
+#menu-scene,
 .shade,
 .scanlines {
   position: absolute;
@@ -65,9 +63,7 @@ footer svg {
   height: 100%;
 }
 #view,
-#fallback-scene,
-.scenery,
-#wordmark {
+#menu-scene {
   image-rendering: pixelated;
 }
 #menu {
@@ -78,16 +74,15 @@ footer svg {
   padding: clamp(16px, 4.2vh, 48px) clamp(20px, 5.5vw, 96px);
   background: #080f13;
 }
-#fallback-scene,
-.scenery,
+#menu-scene,
 .shade,
 .scanlines {
   z-index: -1;
   pointer-events: none;
 }
-.scenery {
-  background-position: 64% center;
-  background-size: cover;
+#menu-scene {
+  object-fit: cover;
+  object-position: 64% center;
 }
 .shade {
   background:
@@ -125,30 +120,15 @@ footer {
   line-height: 1.4;
 }
 .top-strip {
+  justify-content: flex-end;
   border-bottom: 1px solid #a5b4ad42;
   padding-bottom: 16px;
 }
-.facility,
 .version,
 footer button {
   display: inline-flex;
   align-items: center;
   gap: 11px;
-}
-.facility {
-  color: #d7dacf;
-}
-.cross {
-  display: grid;
-  place-items: center;
-  background: #883137;
-  color: #e8daca;
-  width: 26px;
-  height: 25px;
-  font-family: Arial, sans-serif;
-  font-size: 19px;
-  line-height: 1;
-  letter-spacing: 0;
 }
 .version {
   color: #b7c3b9;
@@ -166,15 +146,33 @@ footer button {
   gap: clamp(10px, 3.2vh, 42px);
   margin: 2vh 0 2vh;
 }
-.menu-content h1 {
-  margin: 0;
-  line-height: 0;
-  width: min(47vw, 610px);
+@font-face {
+  font-family: 'Profoundly Pixel';
+  src: url('../assets/ui/ProfoundlyPixel-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
 }
-#wordmark {
-  width: 100%;
-  height: auto;
-  filter: drop-shadow(3px 4px 0 #080a0cc9);
+.wordmark {
+  container-type: inline-size;
+  width: min(47vw, 610px);
+  margin: 0;
+  color: #dedbd0;
+  text-shadow: 3px 4px #080a0c;
+}
+.wordmark span {
+  display: block;
+  font:
+    400 16.6cqw / 0.93 'Profoundly Pixel',
+    Silkscreen,
+    monospace;
+  white-space: nowrap;
+}
+.wordmark span:last-child {
+  color: #d2c8bc;
+  text-shadow:
+    0 3px #84343a,
+    3px 5px #080a0c;
 }
 nav {
   display: grid;
@@ -440,7 +438,7 @@ noscript {
   padding: 2rem;
 }
 @media (max-width: 650px) {
-  .menu-content h1 {
+  .wordmark {
     width: min(82vw, 460px);
   }
   #menu {
@@ -457,7 +455,6 @@ noscript {
   .menu-content {
     gap: 3vh;
   }
-  .facility,
   .version {
     gap: 6px;
   }
@@ -468,8 +465,8 @@ noscript {
   .torch {
     bottom: 2%;
   }
-  .scenery {
-    background-position: 63% center;
+  #menu-scene {
+    object-position: 63% center;
   }
 }
 @media (max-height: 570px) and (min-aspect-ratio: 1/1) {
@@ -481,7 +478,7 @@ noscript {
     align-items: center;
     gap: 5vw;
   }
-  .menu-content h1 {
+  .wordmark {
     width: 44vw;
   }
   .top-strip {

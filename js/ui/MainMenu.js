@@ -1,68 +1,6 @@
-const glyph = {
-  P: ['11110', '11011', '11011', '11110', '11000', '11000', '11000'],
-  R: ['11110', '11011', '11011', '11110', '11100', '11010', '11011'],
-  O: ['01110', '11011', '11011', '11011', '11011', '11011', '01110'],
-  F: ['11111', '11000', '11000', '11110', '11000', '11000', '11000'],
-  U: ['11011', '11011', '11011', '11011', '11011', '11011', '01110'],
-  N: ['11001', '11101', '11101', '11111', '11011', '11011', '11001'],
-  D: ['11110', '11011', '11011', '11011', '11011', '11011', '11110'],
-  L: ['11000', '11000', '11000', '11000', '11000', '11000', '11111'],
-  Y: ['11011', '11011', '01010', '01110', '00100', '00100', '00100'],
-  S: ['01111', '11000', '11000', '01110', '00011', '00011', '11110'],
-  E: ['11111', '11000', '11000', '11110', '11000', '11000', '11111'],
-  T: ['11111', '11111', '00100', '00100', '00100', '00100', '00100'],
-  I: ['111', '010', '010', '010', '010', '010', '111'],
-  G: ['01111', '11000', '11000', '11011', '11001', '11011', '01111'],
-};
 function random(seed) {
   return () =>
     (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
-}
-function paintTitle(canvas) {
-  const ctx = canvas.getContext('2d');
-  const rand = random(417);
-  const rows = ['PROFOUNDLY', 'UNSETTLING'];
-  canvas.width = 266;
-  canvas.height = 100;
-  rows.forEach((word, row) => {
-    let pos = 1;
-    const top = row * 43 + 1;
-    for (const letter of word) {
-      const form = glyph[letter];
-      for (let y = 0; y < 7; y++)
-        for (let x = 0; x < form[y].length; x++) {
-          if (form[y][x] === '0') continue;
-          const px = pos + x * 4,
-            py = top + y * 5;
-          ctx.fillStyle = row === 1 && y === 6 ? '#bfb4a7' : '#dedbd0';
-          ctx.fillRect(px, py, 4, 5);
-          for (let n = 0; n < 2; n++) {
-            ctx.fillStyle = rand() < 0.3 ? '#898781' : '#c9c8be';
-            ctx.fillRect(
-              px + Math.floor(rand() * 4),
-              py + Math.floor(rand() * 5),
-              1,
-              1,
-            );
-          }
-          if (rand() < 0.1) {
-            ctx.clearRect(px, py, 1 + Math.floor(rand() * 2), 1);
-          }
-          if (row === 1 && y === 6 && rand() < 0.62) {
-            const drip = 2 + Math.floor(rand() ** 3 * 15);
-            ctx.fillStyle = '#842e36';
-            ctx.fillRect(px, py + 4, 2, drip);
-            ctx.fillStyle = '#b05c56';
-            ctx.fillRect(px, py + 3, 1, 2);
-          }
-        }
-      pos += form[0].length * 4 + 4;
-    }
-  });
-  // Crop the empty right margin so the rendered title aligns with the controls.
-  const raster = ctx.getImageData(0, 0, 238, 100);
-  canvas.width = 238;
-  ctx.putImageData(raster, 0, 0);
 }
 function backdrop(canvas) {
   const ctx = canvas.getContext('2d');
@@ -124,13 +62,14 @@ export class MainMenu {
     this.body = document.querySelector('#panel-body');
     this.buttons = [...document.querySelectorAll('#actions button')];
     this.index = 0;
-    paintTitle(document.querySelector('#wordmark'));
-    this.paintFallback = backdrop(document.querySelector('#fallback-scene'));
+    const scene = this.root.querySelector('#menu-scene');
+    this.paintFallback = backdrop(scene);
     this.paintFallback(0);
     const art = new Image();
     art.onload = () => {
-      document.querySelector('.scenery').style.backgroundImage =
-        'url("' + art.src + '")';
+      const context = scene.getContext('2d');
+      context.imageSmoothingEnabled = false;
+      context.drawImage(art, 0, 0, scene.width, scene.height);
       this.paintFallback = null;
     };
     art.src = new URL(

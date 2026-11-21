@@ -1,6 +1,6 @@
 # PROFOUNDLY UNSETTLING
 
-Prototipo V0.1 de terror psicológico en primera persona. Empiezas en la recepción del Hospital San Jerónimo. Puedes explorar sus cuatro plantas, escapar de la Enfermera de Agujas y volver a la recepción por las mismas escaleras. El alcance de esta versión es la exploración y la supervivencia libre.
+Prototipo V0.1 de terror psicológico en primera persona. Empiezas en la recepción del hospital. Puedes explorar sus cuatro plantas, escapar de la Enfermera de Agujas y volver a la recepción por las mismas escaleras. El alcance de esta versión es la exploración y la supervivencia libre.
 
 ## Ejecutar en local
 
@@ -70,7 +70,7 @@ Los eventos narrativos o efectos de inquietud pueden suscribirse a `stats.onUnre
 
 | Ruta | Formato y procedencia |
 | --- | --- |
-| `assets/ui/menu_hospital_bg.png` | Hospital nocturno, 1536 × 864, generado con OpenAI ImageGen |
+| `assets/ui/menu_hospital_bg.png` | Hospital nocturno, 384 × 216, generado con OpenAI ImageGen y reducido con vecino más cercano |
 | `assets/textures/wall_tiles.png` | Azulejo agrietado, 512 × 512, material procedural periódico |
 | `assets/textures/floor_linoleum.png` | Linóleo, 512 × 512, material procedural periódico |
 | `assets/textures/ceiling_grime.png` | Humedad y óxido, 512 × 512, material procedural periódico |
@@ -78,6 +78,6 @@ Los eventos narrativos o efectos de inquietud pueden suscribirse a `stats.onUnre
 | `assets/sprites/enemy_needle_nurse.png` | Cuerpo completo, 256 × 384, PNG con canal alfa, generado con OpenAI ImageGen |
 | `assets/models/enemy_needle_nurse.glb` | Malla original de Blender con 2084 triángulos y ocho materiales. Pose estática. |
 
-Higgsfield rechazó el lote de seis imágenes por el requisito de plan Basic o superior. El servicio procesó cero trabajos y no devolvió URLs para descargar con `curl -L`. Los archivos de la tabla son los activos alternativos guardados en las rutas solicitadas.
+Higgsfield rechazó el lote de seis imágenes por el requisito de plan Basic o superior. El servicio procesó cero trabajos y no devolvió URLs para descargar con `curl -L`. Los archivos de la tabla son los activos alternativos guardados en las rutas solicitadas. El intento posterior de regenerar el fondo en Higgsfield devolvió el mismo requisito de plan. El menú amplía el PNG de 384 × 216 sin suavizado y muestra los rótulos en HTML y CSS.
 
 Three.js y sus cargadores se distribuyen bajo la licencia MIT incluida en `js/vendor/three-LICENSE.txt`. Los cargadores incluidos importan la misma instancia del motor que usa el juego. Silkscreen se distribuye bajo la licencia SIL Open Font License incluida en `assets/ui/Silkscreen-LICENSE.txt`.
