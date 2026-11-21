@@ -1,7 +1,9 @@
 import { MainMenu, button } from './ui/MainMenu.js';
 import { HUD } from './ui/HUD.js';
 import { InputManager } from './core/InputManager.js';
-import { AudioSystem } from './core/AudioSystem.js';
+import { AudioManager } from './core/AudioManager.js';
+import { AssetManager } from './core/AssetManager.js';
+import { DEFAULT_RESOLUTION, Engine, RESOLUTIONS } from './core/Engine.js';
 
 const State = Object.freeze({
   MENU: 'MENU',
@@ -10,7 +12,7 @@ const State = Object.freeze({
   PAUSED: 'PAUSED',
   GAME_OVER: 'GAME_OVER',
 });
-const settings = { volume: 55, sensitivity: 100, resolution: 480 };
+const settings = { volume: 55, sensitivity: 100, resolution: DEFAULT_RESOLUTION };
 const saveKey = 'profoundly-unsettling.options.v1';
 try {
   const saved = JSON.parse(localStorage.getItem(saveKey) || '{}');
@@ -21,19 +23,23 @@ try {
     if (Number.isFinite(saved[key]))
       settings[key] = Math.max(min, Math.min(max, saved[key]));
   }
-  if ([320, 426, 480].includes(saved.resolution))
+  if (RESOLUTIONS.includes(saved.resolution))
     settings.resolution = saved.resolution;
 } catch {
   /* Defaults support browsers with storage disabled. */
 }
 const canvas = document.querySelector('#view'),
   hud = new HUD(),
-  sound = new AudioSystem();
+  sound = new AudioManager(),
+  assets = new AssetManager();
+let engine;
+if (canvas.getContext('webgl2', { alpha: false, antialias: false, powerPreference: 'high-performance' })) {
+  engine = new Engine(canvas, settings.resolution);
+}
 let state = State.MENU,
   session = null,
   transition = null,
-  last = performance.now(),
-  fallbackFrame = 0;
+  last = performance.now();
 let audioWanted = false,
   explicitMute = false;
 sound.volume = settings.volume / 100;
@@ -41,7 +47,7 @@ const menu = new MainMenu(menuAction, () => {
   audioWanted = !audioWanted;
   explicitMute = !audioWanted;
   setSound(audioWanted);
-});
+}, engine, assets.textures);
 function setSound(on) {
   audioWanted = on;
   sound.muted = !on;
@@ -54,7 +60,7 @@ const input = new InputManager(canvas, {
   flash: () => {
     if (state === State.PLAYING && !transition) {
       session.flash.toggle();
-      sound.tone(480, 230, 0.055, 0.055, 'triangle');
+      sound.flashlight(session.flash.on);
     }
   },
   interact: () => {
@@ -75,6 +81,7 @@ function setState(next) {
   menu.root.hidden = ![State.MENU, State.LOADING].includes(state);
   hud.root.hidden = ![State.PLAYING, State.PAUSED].includes(state);
   input.setActive(state === State.PLAYING);
+  sound.setPlaying(state === State.PLAYING);
 }
 function changeSetting(key, value) {
   settings[key] = value;
@@ -83,10 +90,9 @@ function changeSetting(key, value) {
   } catch {
     /* Session-only options. */
   }
-  if (key === 'resolution' && session) {
-    session.engine.resolution = value;
-    session.engine.resize();
-    session.engine.render();
+  if (key === 'resolution') {
+    engine?.setResolution(value);
+    if (state === State.PAUSED) engine.render();
   }
   if (key === 'volume') {
     sound.volume = value / 100;
@@ -110,7 +116,7 @@ function menuAction(action) {
   if (action === 'credits') {
     menu.open(
       'CREDITS',
-      '<p><b>PROFOUNDLY UNSETTLING</b><br>Prototipo de terror psicológico · V0.1</p><p>Motor 3D: Three.js. Escenario, materiales, sonido y diseño de juego creados para este prototipo. Fondo y enfermera creados con OpenAI ImageGen.</p>' +
+      '<p><b>PROFOUNDLY UNSETTLING</b><br>Prototipo de terror psicológico · V0.1</p><p>Motor 3D: Three.js. Escenario, materiales, sonido y diseño de juego creados para este prototipo. Fachada y sonido procedurales. Sprite original de la enfermera creado con OpenAI ImageGen.</p>' +
         button('back', 'VOLVER'),
       { back },
       back,
@@ -136,7 +142,8 @@ async function start() {
   try {
     if (!session) {
       const { Session } = await import('./core/Session.js');
-      session = await Session.create({ canvas, input, hud, sound, settings });
+      if (!engine) throw new Error('WebGL 2 no disponible');
+      session = await Session.create({ engine, assets, input, hud, sound, settings });
     }
     session.reset();
     resume();
@@ -201,10 +208,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.max(0, Math.min((now - last) / 1000, 0.05));
   last = now;
-  if (state === State.MENU && menu.paintFallback && now - fallbackFrame > 100) {
-    menu.paintFallback(now / 1000);
-    fallbackFrame = now;
-  }
+  if (state === State.MENU || state === State.LOADING) menu.render(now / 1000);
   if (state !== State.PLAYING) return;
   if (transition) {
     transition.elapsed += dt;
@@ -220,4 +224,7 @@ function frame(now) {
   if (session.stats.health <= 0) gameOver();
 }
 setState(State.MENU);
+window.addEventListener('resize', () => {
+  if (state === State.PAUSED || state === State.GAME_OVER) engine.render();
+});
 requestAnimationFrame(frame);

@@ -74,6 +74,7 @@ const designs = [
       ['Enfermería principal', [12, 2, 17, 5]],
       ['Admisiones', [15, 10, 18, 12]],
     ],
+    windows: [[5, 2], [15, 2]],
     base: 'Pasillo central',
     stairs: [
       { at: [2, 7], to: 0 },
@@ -90,7 +91,7 @@ const designs = [
     props: [
       ['desk', 3, 5],
       ['chairs', 5, 8],
-      ['chairs', 4, 2],
+      ['wheelchair', 4, 2],
       ['chairs', 7, 2],
       ['chairs', 7, 4],
       ['bed', 13, 2],
@@ -136,6 +137,7 @@ const designs = [
       ['Estación de enfermeras', [5, 9, 9, 12]],
       ['Aislamiento', [14, 10, 18, 12]],
     ],
+    windows: [[5, 2], [11, 2]],
     base: 'Pabellón de pacientes',
     stairs: [
       { at: [2, 7], to: 1 },
@@ -154,6 +156,7 @@ const designs = [
       ['bed', 9, 3],
       ['bed', 17, 3],
       ['cabinet', 6, 2],
+      ['wheelchair', 18, 11],
       ['desk', 6, 10],
       ['shelf', 9, 11],
       ['bed', 17, 11],
@@ -193,6 +196,7 @@ const designs = [
       ['Oficinas médicas', [6, 10, 12, 12]],
       ['Ala clausurada', [15, 2, 18, 5]],
     ],
+    windows: [[5, 1], [16, 2]],
     base: 'Tratamientos',
     stairs: [{ at: [2, 7], to: 2 }],
     patrol: [

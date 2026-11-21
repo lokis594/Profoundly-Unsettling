@@ -54,7 +54,6 @@ footer svg {
 #menu,
 #hud,
 #blackout,
-#menu-scene,
 .shade,
 .scanlines {
   position: absolute;
@@ -62,8 +61,7 @@ footer svg {
   width: 100%;
   height: 100%;
 }
-#view,
-#menu-scene {
+#view {
   image-rendering: pixelated;
 }
 #menu {
@@ -72,17 +70,11 @@ footer svg {
   flex-direction: column;
   justify-content: space-between;
   padding: clamp(16px, 4.2vh, 48px) clamp(20px, 5.5vw, 96px);
-  background: #080f13;
 }
-#menu-scene,
 .shade,
 .scanlines {
   z-index: -1;
   pointer-events: none;
-}
-#menu-scene {
-  object-fit: cover;
-  object-position: 64% center;
 }
 .shade {
   background:
@@ -464,9 +456,6 @@ noscript {
   }
   .torch {
     bottom: 2%;
-  }
-  #menu-scene {
-    object-position: 63% center;
   }
 }
 @media (max-height: 570px) and (min-aspect-ratio: 1/1) {

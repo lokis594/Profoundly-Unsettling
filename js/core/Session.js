@@ -1,5 +1,3 @@
-import { Engine } from './Engine.js';
-import { AssetManager } from './AssetManager.js';
 import { HospitalMap } from '../world/HospitalMap.js';
 import { floors } from '../world/floorsData.js';
 import { PlayerStats } from '../player/PlayerStats.js';
@@ -10,15 +8,15 @@ import '../entities/NeedleNurse.js';
 
 export class Session {
   static async create(context) {
-    const assets = await new AssetManager().load();
-    return new Session(context, assets);
+    await context.assets.load();
+    return new Session(context);
   }
-  constructor({ canvas, input, hud, sound, settings }, assets) {
+  constructor({ engine, assets, input, hud, sound, settings }) {
     this.settings = settings;
     this.assets = assets;
     this.hud = hud;
     this.sound = sound;
-    this.engine = new Engine(canvas, settings.resolution);
+    this.engine = engine;
     this.map = new HospitalMap(this.engine, assets);
     this.stats = new PlayerStats();
     this.player = new PlayerController(this.engine.camera, input, this.stats);
@@ -39,12 +37,13 @@ export class Session {
   loadFloor(index, cell, yaw) {
     this.nurse?.dispose();
     this.map.load(index);
+    this.sound.setFloor(index);
     this.nurse = spawnEnemy('needle-nurse', {
       map: this.map,
       assets: this.assets,
     });
     this.player.place(cell, yaw);
-    this.map.update(0, this.age, this.player.position);
+    this.map.update(this.age, this.player.position);
     this.flash.update(this.age, this.stats.panic);
     this.engine.render();
   }
@@ -69,8 +68,8 @@ export class Session {
       this.map,
       this.settings.sensitivity,
     );
-    if (footstep) this.sound.tone(79, 34, 0.12, running ? 0.13 : 0.073);
-    this.map.update(dt, this.age, this.player.position);
+    if (footstep) this.sound.step(running);
+    this.map.update(this.age, this.player.position);
     this.flash.update(this.age, this.stats.panic);
     const danger = this.nurse.update(dt, this.player, this.flash, (damage) => {
       this.stats.damage(damage);
@@ -96,6 +95,7 @@ export class Session {
       ...danger,
       oppressive: this.map.floor.oppressive.includes(room),
     });
+    this.sound.update(this.stats.unrest, this.map.electrical);
     this.hud.update(dt, this.age, this.stats, {
       room,
       floor: this.map.floor.id,
