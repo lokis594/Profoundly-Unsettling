@@ -28,15 +28,15 @@ Para ver la versión de la enfermera con malla tridimensional, abre **http://127
 | Pausa | Esc. Perder el foco también pausa la simulación. |
 | Navegar por el menú | ↑ / ↓ y Enter, Tab o ratón |
 
-**OPTIONS** ajusta el volumen, la sensibilidad y la resolución. Se guardan en el navegador. Las tres resoluciones de referencia son 320 × 180, 426 × 240 y 480 × 270. En otras relaciones de aspecto se mantiene la altura interna y se ajusta el ancho para conservar las proporciones. **EXIT** abre la pantalla de cierre de sesión.
+**OPTIONS** ajusta el volumen, la sensibilidad y la resolución. Se guardan en el navegador. La resolución interna predeterminada es 360 × 202. También puedes elegir 320 × 180, 426 × 240 o 480 × 270. La cámara se ajusta a la relación de aspecto de la ventana. **EXIT** abre la pantalla de cierre de sesión.
 
 ## Recorrido de verificación
 
 1. En recepción empiezas mirando hacia el pasillo central. La escalera que queda a tu espalda lleva a B1. La que hay al otro extremo del pasillo lleva a P2. Sigue hasta P3 por la salida opuesta de P2. Recorre el camino inverso. El distintivo de planta y los rótulos de sala cambian durante el recorrido.
 2. Alterna F y sigue el indicador de la linterna. Corre hasta agotar la energía. Al caminar o detenerte se recupera. Puedes volver a correr cuando alcance el 24 %.
-3. Apaga la linterna en una zona tranquila y observa **INQUIETUD**. Parte del 0 % y crece con la oscuridad, la proximidad de la enfermera y ciertas salas. Por encima del 60 % aparecen viñeta, temblor de cámara y parpadeo. Con luz y lejos del peligro, la inquietud desciende.
+3. Apaga la linterna en una zona tranquila y observa **INQUIETUD**. Parte del 0 % y crece con la oscuridad, la proximidad de la enfermera y ciertas salas. Por encima del 60 % aparecen viñeta, temblor de cámara, parpadeo, latidos y un pitido que aumenta con la inquietud. Con luz y lejos del peligro, la inquietud desciende.
 4. Acércate a la enfermera o alúmbrala con visión despejada. Tras la alerta comienza a perseguirte. Cada ataque a corta distancia resta 18 puntos. A cero de salud aparece **GAME OVER**. **REINICIAR** restablece las estadísticas y la posición.
-5. Para probar los respaldos sin modificar el repositorio, bloquea las peticiones que contengan `/assets/` en las herramientas de desarrollo del navegador, desactiva la caché y recarga. El menú dibuja la fachada y la neblina en Canvas. El hospital y la enfermera usan texturas procedurales. Si falta el GLB, el modo 3D también recurre al sprite.
+5. Pulsa **PLAY** para activar el sonido. Prueba los pasos al caminar y correr, el clic de la linterna y el zumbido cerca de un fluorescente que parpadea. Al bajar al sótano cambia el timbre del ambiente. Ajusta el volumen en **OPTIONS** desde la pausa.
 
 La salud, energía, inquietud y linterna se conservan al usar las escaleras. Cada planta inicia su propia patrulla al entrar. Esc congela tanto al jugador como a la enfermera.
 
@@ -53,12 +53,13 @@ La salud, energía, inquietud y linterna se conservan al usar las escaleras. Cad
 | Módulo | Responsabilidad |
 | --- | --- |
 | `js/main.js` | Entrada, ciclo de animación, estados de menú, carga, juego, pausa y muerte. Transición entre plantas con fundido. |
-| `js/core/` | Motor WebGL, cámara, niebla, entrada, recursos, sesión y sonido sintetizado. El importmap fija Three.js r170. Si el CDN no responde, se carga la copia incluida en `js/vendor/`. |
+| `js/core/` | Motor WebGL, cámara, niebla, entrada, recursos, sesión y sonido sintetizado. Incluye el render retro y usa la copia local de Three.js r170 en `js/vendor/`. |
 | `js/world/floorsData.js` | Datos de planta, habitaciones, conexiones, mobiliario, iluminación, escaleras y patrullas. Las coordenadas son pares de columna y fila. |
 | `js/world/HospitalMap.js` | Construye las mallas por instancias, gestiona la cuadrícula de colisiones, la búsqueda de rutas por anchura y la visibilidad. Los recursos exclusivos de cada planta se liberan al salir. |
+| `js/world/HospitalProps.js` | Mobiliario, fluorescentes y geometría de haces de luz. |
 | `js/player/` | Movimiento, colisiones AABB, oscilación de cámara, estadísticas y linterna. |
 | `js/entities/` | Clase base, registro de tipos y máquina de estados PATROL → ALERT → CHASE → ATTACK con pérdida de contacto y vuelta a patrulla. |
-| `js/ui/` | Menú, opciones persistentes, pantalla de cierre, HUD y efectos de inquietud. |
+| `js/ui/` | Fachada 3D del menú, opciones persistentes, pantalla de cierre, HUD y efectos de inquietud. |
 
 Para ampliar una planta, edita los rectángulos de salas y pasillos de `floorsData.js`. Un rectángulo incluye ambos extremos. Un nodo de patrulla o escalera debe estar en una celda transitable. Los obstáculos de mobiliario ocupan una celda. Las escaleras llevan un índice de destino y necesitan una entrada recíproca en la planta vecina.
 
@@ -70,14 +71,9 @@ Los eventos narrativos o efectos de inquietud pueden suscribirse a `stats.onUnre
 
 | Ruta | Formato y procedencia |
 | --- | --- |
-| `assets/ui/menu_hospital_bg.png` | Hospital nocturno, 384 × 216, generado con OpenAI ImageGen y reducido con vecino más cercano |
-| `assets/textures/wall_tiles.png` | Azulejo agrietado, 512 × 512, material procedural periódico |
-| `assets/textures/floor_linoleum.png` | Linóleo, 512 × 512, material procedural periódico |
-| `assets/textures/ceiling_grime.png` | Humedad y óxido, 512 × 512, material procedural periódico |
-| `assets/textures/door_metal.png` | Acero con mirilla, 512 × 512, textura frontal procedural |
 | `assets/sprites/enemy_needle_nurse.png` | Cuerpo completo, 256 × 384, PNG con canal alfa, generado con OpenAI ImageGen |
 | `assets/models/enemy_needle_nurse.glb` | Malla original de Blender con 2084 triángulos y ocho materiales. Pose estática. |
 
-Higgsfield rechazó el lote de seis imágenes por el requisito de plan Basic o superior. El servicio procesó cero trabajos y no devolvió URLs para descargar con `curl -L`. Los archivos de la tabla son los activos alternativos guardados en las rutas solicitadas. El intento posterior de regenerar el fondo en Higgsfield devolvió el mismo requisito de plan. El menú amplía el PNG de 384 × 216 sin suavizado y muestra los rótulos en HTML y CSS.
+La fachada y los materiales del hospital usan texturas procedurales de 64 × 64 o 128 × 128 generadas por `AssetManager.js`. El ambiente y los efectos sonoros se sintetizan en tiempo real con Web Audio.
 
 Three.js y sus cargadores se distribuyen bajo la licencia MIT incluida en `js/vendor/three-LICENSE.txt`. Los cargadores incluidos importan la misma instancia del motor que usa el juego. Silkscreen se distribuye bajo la licencia SIL Open Font License incluida en `assets/ui/Silkscreen-LICENSE.txt`.

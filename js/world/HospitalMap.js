@@ -1,4 +1,5 @@
 import THREE from '../core/ThreeRuntime.js';
+import { HospitalProps } from './HospitalProps.js';
 import { CELL, floors } from './floorsData.js';
 const moves = [
   [1, 0],
@@ -22,21 +23,18 @@ export class HospitalMap {
     for (const [name, color] of Object.entries({
       base: 0x3e5049,
       stripe: 0x73877b,
-      metal: 0x59645f,
-      wood: 0x706457,
-      linen: 0xa7aa96,
       pillow: 0xc0beb0,
-      rust: 0x794d33,
       shadow: 0x232b2b,
       water: 0x394744,
       red: 0x833f3f,
     })) {
-      this.materials[name] = new THREE.MeshLambertMaterial({ color });
+      this.materials[name] = engine.snap(new THREE.MeshLambertMaterial({ color }));
     }
-    for (const name of ['wall', 'floor', 'ceiling', 'door'])
-      this.materials[name] = new THREE.MeshLambertMaterial({ map: tex[name] });
-    this.materials.bulb = new THREE.MeshBasicMaterial({ color: 0xc9c6a5 });
-    this.materials.dim = new THREE.MeshBasicMaterial({ color: 0x777b6b });
+    for (const name of ['wall', 'floor', 'ceiling', 'door', 'metal', 'wood', 'rust', 'linen'])
+      this.materials[name] = engine.snap(new THREE.MeshLambertMaterial({ map: tex[name] }));
+    this.materials.bulb = engine.snap(new THREE.MeshBasicMaterial({ color: 0xc9c6a5 }));
+    this.materials.night = engine.snap(new THREE.MeshBasicMaterial({ color: 0x172833 }));
+    this.props = new HospitalProps(this);
   }
   open(x, z) {
     return this.floor.grid[z]?.[x] === '.' && !this.obstacles.has(key(x, z));
@@ -106,6 +104,7 @@ export class HospitalMap {
         if (o.isInstancedMesh) o.dispose();
       });
       this.signAssets.forEach((a) => a.dispose());
+      this.props.clear();
     }
     this.index = index;
     this.floor = floors[index];
@@ -127,7 +126,9 @@ export class HospitalMap {
           if (grid[z + dz]?.[x + dx] === '.') continue;
           const wx = p.x + (dx * CELL) / 2,
             wz = p.z + (dz * CELL) / 2;
-          this.box(
+          if (this.floor.windows?.some(([wx, wz]) => wx === x && wz === z) && dz === -1) {
+            this.brokenWindow(wx, wz);
+          } else this.box(
             'wall',
             wx,
             height / 2,
@@ -157,7 +158,7 @@ export class HospitalMap {
         }
       }
     for (const [type, x, z] of this.floor.props)
-      this.prop(type, center([x, z]));
+      this.props.place(type, center([x, z]));
     for (const [x, z, side] of this.floor.doors) {
       const p = center([x, z]),
         dir = side === 'n' ? -1 : 1;
@@ -173,21 +174,8 @@ export class HospitalMap {
     }
     this.dressFloor(index);
     for (const stair of this.floor.stairs) this.stair(stair);
-    for (const [i, at] of this.floor.lamps.entries()) {
-      const p = center(at);
-      this.box('metal', p.x, 3.14, p.z, 1.4, 0.12, 0.36);
-      for (const dz of [-0.085, 0.085])
-        this.box(
-          i % 4 === 2 ? 'dim' : 'bulb',
-          p.x,
-          3.055,
-          p.z + dz,
-          1.2,
-          0.045,
-          0.065,
-        );
-      this.lamps.push({ p, phase: i * 1.73, base: i % 4 === 2 ? 7 : 14 });
-    }
+    for (const [i, at] of this.floor.lamps.entries())
+      this.lamps.push(this.props.fixture(center(at), i, this.floor.lamp));
     // The fixtures stay visible throughout the floor. Reuse four real lights nearest the camera.
     this.lights = Array.from({ length: 4 }, () => {
       const l = new THREE.PointLight(this.floor.lamp, 12, 11, 2);
@@ -210,6 +198,23 @@ export class HospitalMap {
       this.group.add(mesh);
     }
     this.batches.clear();
+  }
+  brokenWindow(x, z) {
+    this.box('wall', x, 0.55, z, CELL, 1.1, 0.1);
+    this.box('wall', x, 2.88, z, CELL, 0.74, 0.1);
+    for (const dx of [-1.13, 1.13]) this.box('wall', x + dx, 1.81, z, 0.74, 1.43, 0.1);
+    for (const dx of [-0.77, 0.77])
+      this.box('rust', x + dx, 1.81, z + 0.08, 0.08, 1.47, 0.15);
+    for (const y of [1.12, 2.51]) this.box('rust', x, y, z + 0.08, 1.65, 0.09, 0.18);
+    this.box('night', x, 1.8, z - 0.6, 1.65, 1.48, 0.06);
+    this.box('metal', x - 0.48, 1.52, z + 0.07, 0.47, 0.065, 0.06, 0.64);
+    this.box('metal', x + 0.54, 2.28, z + 0.07, 0.37, 0.045, 0.055, -0.83);
+    this.props.beam(new THREE.Vector3(x, 1.92, z + 0.08), new THREE.Vector3(0, -0.27, 1), {
+      width: 0.72, spread: 1.13, length: 4.7, color: 0x8dabc2, strength: 0.29,
+    });
+    const spill = new THREE.PointLight(0x8dabc2, 6.8, 4.6);
+    spill.position.set(x, 1.83, z + 0.42);
+    this.group.add(spill);
   }
   dressFloor(index) {
     // A two-sided wayfinding board faces each approach in the central corridor.
@@ -287,11 +292,11 @@ export class HospitalMap {
     t.magFilter = t.minFilter = THREE.NearestFilter;
     t.generateMipmaps = false;
     t.colorSpace = THREE.SRGBColorSpace;
-    const m = new THREE.MeshBasicMaterial({
+    const m = this.engine.snap(new THREE.MeshBasicMaterial({
       map: t,
       color: 0xc3c9b9,
       side: THREE.DoubleSide,
-    });
+    }));
     const geom = new THREE.PlaneGeometry(width, width / 6);
     this.signAssets.push(t, m, geom);
     const sign = new THREE.Mesh(geom, m);
@@ -329,66 +334,30 @@ export class HospitalMap {
       2.0,
     );
   }
-  prop(type, p) {
-    const b = (mat, x, y, z, w, h, d, ang = 0) =>
-      this.box(mat, p.x + x, y, p.z + z, w, h, d, ang);
-    if (type === 'bed' || type === 'morgue') {
-      b('metal', 0, 0.37, 0, 1, 0.08, 2.12);
-      b(type === 'morgue' ? 'metal' : 'linen', 0, 0.53, 0, 0.98, 0.24, 2);
-      if (type === 'bed') b('pillow', 0, 0.7, -0.68, 0.75, 0.16, 0.36);
-      for (const x of [-0.45, 0.45])
-        for (const z of [-0.96, 0.96]) b('metal', x, 0.33, z, 0.07, 0.66, 0.07);
-      for (const z of [-1, 1]) b('metal', 0, 0.78, z, 0.98, 0.1, 0.065);
-    } else if (type === 'chairs') {
-      for (const x of [-0.75, 0, 0.75]) {
-        b('base', x, 0.47, 0, 0.63, 0.12, 0.62);
-        b('base', x, 0.86, -0.28, 0.63, 0.65, 0.1);
-        for (const dx of [-0.23, 0.23])
-          b('metal', x + dx, 0.23, 0, 0.06, 0.46, 0.48);
-      }
-    } else if (type === 'desk') {
-      b('wood', 0, 0.5, 0, 1.94, 1, 0.78);
-      b('linen', 0, 1.04, 0, 2.1, 0.1, 0.92);
-      b('shadow', 0.52, 1.24, -0.1, 0.47, 0.35, 0.25);
-      b('pillow', -0.5, 1.11, 0.08, 0.42, 0.03, 0.3);
-    } else if (type === 'boiler' || type === 'pipes') {
-      for (const x of [-0.46, 0.46]) {
-        b('rust', x, 1.2, 0, 0.7, 2.4, 0.95);
-        b('metal', x, 2.59, 0, 0.18, 0.44, 0.2);
-        for (const h of [0.32, 1.8]) b('metal', x, h, 0, 0.74, 0.1, 1);
-      }
-    } else if (type === 'screen') {
-      for (let i = -1; i <= 1; i++)
-        b('linen', i * 0.55, 1.14, 0, 0.52, 1.65, 0.12);
-    } else {
-      b('metal', 0, 1, 0, 1.32, 2, 0.48);
-      for (let i = 0; i < 4; i++) {
-        b('shadow', 0, 0.32 + 0.44 * i, 0.25, 1.18, 0.32, 0.035);
-        for (let j = 0; j < 4; j++)
-          b(
-            j % 2 ? 'linen' : 'rust',
-            -0.42 + j * 0.24,
-            0.29 + 0.44 * i,
-            0.3,
-            0.11,
-            0.21,
-            0.1,
-          );
-      }
-    }
-  }
-  update(dt, time, player) {
+  update(time, player) {
     const near = [...this.lamps].sort(
       (a, b) => a.p.distanceToSquared(player) - b.p.distanceToSquared(player),
     );
-    this.lights.forEach((l, i) => {
+    this.electrical = 0;
+    for (const f of near) {
+      if (!f.unstable) continue;
+      if (time >= f.until) {
+        const off = f.level > 0.45;
+        f.level = off ? 0.06 + Math.random() * 0.33 : 0.78 + Math.random() * 0.22;
+        f.until = time + (off ? 0.04 + Math.random() * 0.25 : 0.09 + Math.random() ** 2 * 4.4);
+        f.material.color.copy(f.color).multiplyScalar(f.level);
+        if (f.beam) f.beam.value = 0.18 * f.level;
+      }
+      const distance = f.p.distanceToSquared(player);
+      if (distance < 49 && this.clearSight(player, f.p)) {
+        const gain = (1 - Math.sqrt(distance) / 7) ** 2;
+        this.electrical = Math.max(this.electrical, gain * (0.35 + f.level * 0.65));
+      }
+    }
+    this.lights.forEach((light, i) => {
       const f = near[i];
-      l.position.set(f.p.x, 2.9, f.p.z);
-      l.intensity =
-        f.base *
-        (0.93 +
-          0.045 * Math.sin(time * 7 + f.phase) -
-          (Math.sin(time * 4 + f.phase) > 0.97 ? 0.14 : 0));
+      light.position.set(f.p.x, 2.76, f.p.z);
+      light.intensity = f.base * f.level;
     });
   }
 }
