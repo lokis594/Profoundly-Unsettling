@@ -13,6 +13,7 @@ export class EnemyBase {
       throw new TypeError('EnemyBase requiere una implementación.');
     this.map = map;
     this.state = 'PATROL';
+    this.elapsed = 0;
     this.route = [];
     this.goal = '';
   }
@@ -42,8 +43,13 @@ export class EnemyBase {
         len = Math.hypot(dx, dz);
       const step = Math.min(len, movement);
       if (len > 0.001) {
-        this.position.x += (dx / len) * step;
-        this.position.z += (dz / len) * step;
+        const x = this.position.x + (dx / len) * step;
+        const z = this.position.z + (dz / len) * step;
+        if (!this.map.canStand(x, z, 0.23)) {
+          this.goal = '';
+          return false;
+        }
+        this.position.set(x, 0, z);
       }
       if (len <= movement) this.route.shift();
       movement -= step;

@@ -56,6 +56,26 @@ export class AudioManager {
     this.oscillator('sine', 0.083, 58, this.windFilter.frequency);
     wind.start();
 
+    // Clusters of short grains interrupted by drop-outs, like a weak AM receiver.
+    const staticBuffer = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
+    const staticSamples = staticBuffer.getChannelData(0);
+    let remaining = 0, grain = 0;
+    for (let i = 0; i < staticSamples.length; i++) {
+      if (--remaining <= 0) {
+        remaining = Math.ceil(ctx.sampleRate * (0.002 + Math.random() ** 2 * 0.039));
+        grain = 0.12 + Math.random() ** 2 * 1.6;
+      }
+      staticSamples[i] = Math.tanh(samples[i] * grain * 1.8);
+    }
+    const receiver = ctx.createBufferSource();
+    receiver.buffer = staticBuffer;
+    receiver.loop = true;
+    const voiceBand = this.filter('bandpass', 1430, 0.78);
+    this.radio = ctx.createGain();
+    this.radio.gain.value = 0;
+    receiver.connect(voiceBand).connect(this.radio).connect(this.effects);
+    receiver.start();
+
     this.hum = ctx.createGain();
     this.hum.gain.value = 0;
     this.hum.connect(this.effects);
@@ -94,6 +114,7 @@ export class AudioManager {
     const now = this.ctx.currentTime;
     this.effects.gain.setTargetAtTime(Number(playing), now, 0.035);
     if (!playing) {
+      this.radio.gain.setTargetAtTime(0, now, 0.035);
       this.hum.gain.setTargetAtTime(0, now, 0.05);
       this.ring.gain.setTargetAtTime(0, now, 0.06);
       this.nextBeat = 0;
@@ -104,6 +125,7 @@ export class AudioManager {
     if (!this.ctx) return;
     const { root, upper, wind, air } = profiles[index];
     const now = this.ctx.currentTime;
+    this.radio.gain.setTargetAtTime(0, now, 0.04);
     this.root.frequency.setTargetAtTime(root, now, 0.6);
     this.upper.frequency.setTargetAtTime(upper, now, 0.6);
     this.windFilter.frequency.setTargetAtTime(wind, now, 0.85);
@@ -152,9 +174,26 @@ export class AudioManager {
     this.burst(0.031, on ? 1850 : 1390, 2.1, 0.26);
     this.tone(on ? 680 : 510, 155, 0.035, 0.1, 'triangle', 0.018);
   }
-  update(unrest, electrical) {
+  nurseStep(distance, draggingFoot, sight) {
+    const level = Math.max(0, 1 - distance / 14) ** 1.5 * (sight ? 1 : 0.5);
+    if (level < 0.005) return;
+    const pitch = 0.9 + Math.random() * 0.2;
+    this.burst(draggingFoot ? 0.26 : 0.14, 370 * pitch, 0.78, level * 0.34);
+    this.burst(0.12, 102 * pitch, 0.66, level * 0.45, 0.026);
+    this.burst(0.105, 2370 * pitch, 8.5, level * 0.14, draggingFoot ? 0.085 : 0.04);
+    this.burst(0.067, 3380 * pitch, 11, level * 0.08, 0.10);
+  }
+  nurseImpact() {
+    this.burst(0.069, 3240, 6.7, 0.42);
+    this.burst(0.085, 1780, 4.2, 0.22, 0.013);
+    this.burst(0.18, 122, 0.68, 1.05, 0.025);
+    this.burst(0.086, 490, 0.86, 0.36, 0.038);
+  }
+  update(unrest, electrical, danger) {
     if (this.ctx?.state !== 'running' || !this.playing) return;
     const t = this.ctx.currentTime;
+    const proximity = Math.max(0, 1 - danger.dist / 18);
+    this.radio.gain.setTargetAtTime(0.28 * proximity ** 1.65 * (danger.sight ? 1 : 0.56), t, 0.11);
     const stress = Math.max(0, (unrest - 60) / 40);
     this.hum.gain.setTargetAtTime(0.085 * electrical, t, 0.07);
     this.ring.gain.setTargetAtTime(0.022 * stress ** 1.35, t, 0.12);

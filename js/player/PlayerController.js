@@ -17,29 +17,35 @@ export class PlayerController {
     this.yaw = yaw;
     this.pitch = 0;
     this.bob = 0;
+    this.punch = 0;
+    this.lookDX = this.lookDY = this.moveSpeed = 0;
     this.phase = 0;
     this.sync(0);
+  }
+  takeHit(time) {
+    this.punch = 1;
+    this.sync(time);
   }
   sync(time) {
     const panic = this.stats.panic && !this.reducedMotion ? 0.005 : 0;
     this.camera.position.copy(this.position);
     this.camera.position.y = 1.62 + this.bob;
+    const kick = this.reducedMotion ? 0 : this.punch;
     this.camera.rotation.set(
-      this.pitch + panic * Math.sin(time * 21),
+      this.pitch + 0.104 * kick + panic * Math.sin(time * 21),
       this.yaw + panic * Math.sin(time * 17),
-      0,
+      kick * (0.078 + 0.033 * Math.sin(time * 47)),
       'YXZ',
     );
   }
   update(dt, time, map, sensitivity) {
     const [mx, my] = this.input.look();
     const speed = (0.002 * sensitivity) / 100;
-    this.yaw -=
-      mx * speed + this.input.axis('ArrowRight', 'ArrowLeft') * dt * 1.8;
+    this.lookDX = mx * speed + this.input.axis('ArrowRight', 'ArrowLeft') * dt * 1.8;
+    this.lookDY = my * speed - this.input.axis('ArrowUp', 'ArrowDown') * dt * 1.3;
+    this.yaw -= this.lookDX;
     this.pitch = THREE.MathUtils.clamp(
-      this.pitch -
-        my * speed +
-        this.input.axis('ArrowUp', 'ArrowDown') * dt * 1.3,
+      this.pitch - this.lookDY,
       -1.32,
       1.32,
     );
@@ -50,7 +56,8 @@ export class PlayerController {
       length > 0 &&
       !this.stats.exhausted &&
       (this.input.keys.has('ShiftLeft') || this.input.keys.has('ShiftRight'));
-    const stride = (dt * (sprint ? 4.4 : 2.45)) / (length || 1);
+    this.punch = Math.max(0, this.punch - dt * 2.9);
+    const stride = dt * (sprint ? 4.4 : 2.45) * (1 - 0.58 * this.punch) / (length || 1);
     const dx =
       (Math.cos(this.yaw) * strafe - Math.sin(this.yaw) * forward) * stride;
     const dz =
@@ -63,6 +70,7 @@ export class PlayerController {
       this.position.x - startX,
       this.position.z - startZ,
     );
+    this.moveSpeed = dt > 0 ? distance / dt : 0;
     const previous = Math.floor(this.phase / Math.PI);
     this.phase += distance * 3.6;
     const target = this.reducedMotion
