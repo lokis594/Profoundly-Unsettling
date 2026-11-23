@@ -93,6 +93,9 @@ for (let i = 0; i < 6; i++) {
   addRoom(outpatient, 'Consulta ' + label, [48, z, 52, z + 2], [48, z + 1, 'w', 'door', label]);
   outpatient.props.push(['desk', 51, z + 1]);
 }
+addRoom(outpatient, 'Mantenimiento', [35, 28, 36, 29],
+  [36, 29, 's', 'door', 'MANTENIMIENTO']);
+outpatient.lamps.push([36, 29]);
 addRoom(outpatient, 'Office', [48, 26, 52, 32], [48, 29, 'w', 'door', 'OFFICE']);
 addRoom(outpatient, 'Registration Counter', [41, 27, 43, 29],
   [41, 28, 'w', 'counter', 'REGISTRATION'], [41, 27, 'w', 'door']);

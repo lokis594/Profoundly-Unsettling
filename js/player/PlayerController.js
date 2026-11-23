@@ -6,16 +6,16 @@ export class PlayerController {
     this.input = input;
     this.stats = stats;
     this.position = new THREE.Vector3();
-    this.yaw = 0;
-    this.pitch = 0;
+    this.baseYaw = 0;
+    this.basePitch = 0;
     this.phase = 0;
     this.bob = 0;
     this.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
   place(cell, yaw) {
     this.position.copy(center(cell));
-    this.yaw = yaw;
-    this.pitch = 0;
+    this.baseYaw = yaw;
+    this.basePitch = 0;
     this.bob = 0;
     this.punch = 0;
     this.lookDX = this.lookDY = this.moveSpeed = 0;
@@ -31,23 +31,21 @@ export class PlayerController {
     this.camera.position.copy(this.position);
     this.camera.position.y = 1.62 + this.bob;
     const kick = this.reducedMotion ? 0 : this.punch;
-    this.camera.rotation.set(
-      this.pitch + 0.104 * kick + panic * Math.sin(time * 21),
-      this.yaw + panic * Math.sin(time * 17),
-      kick * (0.078 + 0.033 * Math.sin(time * 47)),
-      'YXZ',
-    );
+    const pitchOffset = 0.104 * kick + panic * Math.sin(time * 21);
+    const yawOffset = panic * Math.sin(time * 17);
+    const rollOffset = kick * (0.078 + 0.033 * Math.sin(time * 47));
+    this.camera.rotation.set(this.basePitch + pitchOffset, this.baseYaw + yawOffset, rollOffset, 'YXZ');
   }
   update(dt, time, map, sensitivity) {
     const [mx, my] = this.input.look();
     const speed = (0.002 * sensitivity) / 100;
     this.lookDX = mx * speed + this.input.axis('ArrowRight', 'ArrowLeft') * dt * 1.8;
     this.lookDY = my * speed - this.input.axis('ArrowUp', 'ArrowDown') * dt * 1.3;
-    this.yaw -= this.lookDX;
-    this.pitch = THREE.MathUtils.clamp(
-      this.pitch - this.lookDY,
-      -1.32,
-      1.32,
+    this.baseYaw -= this.lookDX;
+    this.basePitch = THREE.MathUtils.clamp(
+      this.basePitch - this.lookDY,
+      -1.42,
+      1.42,
     );
     const forward = this.input.axis('KeyW', 'KeyS'),
       strafe = this.input.axis('KeyD', 'KeyA');
@@ -59,9 +57,9 @@ export class PlayerController {
     this.punch = Math.max(0, this.punch - dt * 2.9);
     const stride = dt * (sprint ? 4.4 : 2.45) * (1 - 0.58 * this.punch) / (length || 1);
     const dx =
-      (Math.cos(this.yaw) * strafe - Math.sin(this.yaw) * forward) * stride;
+      (Math.cos(this.baseYaw) * strafe - Math.sin(this.baseYaw) * forward) * stride;
     const dz =
-      (-Math.sin(this.yaw) * strafe - Math.cos(this.yaw) * forward) * stride;
+      (-Math.sin(this.baseYaw) * strafe - Math.cos(this.baseYaw) * forward) * stride;
     const startX = this.position.x,
       startZ = this.position.z;
     if (map.canStand(startX + dx, startZ)) this.position.x += dx;

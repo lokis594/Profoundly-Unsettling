@@ -80,6 +80,7 @@ export class Flashlight {
       this.mist.add(slice);
     }
   }
+  get isOn() { return this.on; }
   toggle() {
     this.on = !this.on;
     this.kick = 1;

@@ -1,9 +1,11 @@
 import { RESOLUTIONS, renderHeight } from '../core/Engine.js';
 import { HospitalExterior } from './HospitalExterior.js';
 
+import { engrave } from './Wordmark.js';
 export class MainMenu {
   constructor(onAction, onSound, engine, textures) {
     this.root = document.querySelector('#menu');
+    engrave(this.root.querySelector('.wordmark'));
     this.dialog = document.querySelector('#panel');
     this.title = document.querySelector('#panel-title');
     this.body = document.querySelector('#panel-body');

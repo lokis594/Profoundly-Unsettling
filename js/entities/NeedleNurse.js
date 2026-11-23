@@ -7,9 +7,11 @@ export class NeedleNurse extends EnemyBase {
   constructor({ map, assets, sound }) {
     super({ map });
     this.sound = sound;
+    this.floorIndex = map.index;
     this.patrol = map.floor.patrol;
     this.index = 1;
     this.position = center(this.patrol[0]);
+    this.health=100;
     this.rig = new NurseRig(assets.textures);
     this.visual = this.rig.root;
     this.visual.position.copy(this.position);
@@ -26,6 +28,29 @@ export class NeedleNurse extends EnemyBase {
     this.nextTwitch = 0.8;
     this.contactTime = 0.48;
     this.hitDelivered = false;
+    this.hitParts=[];
+    this.visual.traverse(piece=>{
+      if(!piece.isMesh || piece.parent.name==='aguja') return;
+      piece.userData.hitZone=piece.parent===this.rig.head?'head':piece.parent===this.rig.spine?'chest':'limb';
+      this.hitParts.push(piece);
+    });
+    this.chips=Array.from({length:9},()=>{
+      const mesh=new THREE.Mesh(this.rig.geometries.box,this.rig.materials.stain);
+      mesh.scale.setScalar(.025);mesh.visible=false;map.group.add(mesh);
+      return mesh;
+    });
+    this.splatterTime=0;
+  }
+  strike(zone,point){
+    if(!this.health)return;
+    this.health=Math.max(0,this.health-({head:40,chest:20,limb:10}[zone]));
+    this.sound.nurseImpact();
+    if(zone==='head')this.sound.burst(.095,215,1.7,.92);
+    this.sound.cry(!this.health);
+    this.splatterTime=.22;
+    this.chips.forEach(mesh=>{mesh.position.copy(point);mesh.visible=true;});
+    if(this.health)this.playDamageAnimation();
+    else this.setState('DEAD');
   }
   dispose() { this.rig.dispose(); }
   playDamageAnimation() {
@@ -33,6 +58,23 @@ export class NeedleNurse extends EnemyBase {
     this.elapsed = 0;
   }
   update(dt, player, torch, onHit) {
+    if (this.floorIndex !== this.map.index) return {near:false, chased:false, dist:Infinity, sight:false};
+    if(this.splatterTime>0){
+      this.splatterTime-=dt;
+      this.chips.forEach((mesh,i)=>{
+        mesh.position.x+=Math.sin(i*9)*dt;
+        mesh.position.z+=Math.cos(i*7)*dt;
+        mesh.position.y+=(this.splatterTime*8-.9)*dt;
+        mesh.visible=this.splatterTime>0;
+      });
+    }
+    if(!this.health){
+      this.elapsed+=dt;
+      const fall=THREE.MathUtils.smoothstep(this.elapsed,0,.71);
+      this.visual.rotation.x=-1.54*fall;
+      this.visual.position.y=.18*fall;
+      return {near:false,chased:false,dist:Infinity,sight:false};
+    }
     this.lastPosition.copy(this.position);
     this.clock += dt;
     this.elapsed += dt;
@@ -84,8 +126,8 @@ export class NeedleNurse extends EnemyBase {
         break;
     }
     this.animate(dt, dist, sight);
-    return { near: dist < 5.5 || (sight && dist < 9),
-      chased: this.state === 'CHASE' || this.state === 'ATTACK', dist, sight };
+    return { near: detects,
+      chased: detects && (this.state === 'CHASE' || this.state === 'ATTACK'), dist, sight };
   }
   advance(step) {
     const x = this.position.x + this.aim.x * step, z = this.position.z + this.aim.z * step;

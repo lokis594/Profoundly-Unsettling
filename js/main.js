@@ -3,6 +3,7 @@ import { HUD } from './ui/HUD.js';
 import { InputManager } from './core/InputManager.js';
 import { AudioManager } from './core/AudioManager.js';
 import { AssetManager } from './core/AssetManager.js';
+import { Session } from './core/Session.js';
 import { DEFAULT_RESOLUTION, Engine, RESOLUTIONS } from './core/Engine.js';
 
 const State = Object.freeze({
@@ -10,6 +11,8 @@ const State = Object.freeze({
   LOADING: 'LOADING',
   PLAYING: 'PLAYING',
   PAUSED: 'PAUSED',
+  MAP: 'MAP',
+  DYING: 'DYING',
   GAME_OVER: 'GAME_OVER',
 });
 const settings = { volume: 55, sensitivity: 100, resolution: DEFAULT_RESOLUTION };
@@ -63,7 +66,10 @@ const input = new InputManager(canvas, {
       sound.flashlight(session.flash.on);
     }
   },
+  map: toggleMap,
+  attack: () => { if(state===State.PLAYING && !transition) session.weapon.attack(session.stats,sound); },
   interact: () => {
+    if(state===State.PLAYING && !transition && session.finds.interact(session))return;
     if (
       state === State.PLAYING &&
       !transition &&
@@ -79,9 +85,21 @@ function setState(next) {
   state = next;
   document.body.dataset.state = next;
   menu.root.hidden = ![State.MENU, State.LOADING].includes(state);
-  hud.root.hidden = ![State.PLAYING, State.PAUSED].includes(state);
-  input.setActive(state === State.PLAYING);
-  sound.setPlaying(state === State.PLAYING);
+  hud.root.hidden = ![State.PLAYING, State.PAUSED, State.MAP, State.DYING].includes(state);
+  input.setActive(state === State.PLAYING, state === State.MAP);
+  sound.setPlaying([State.PLAYING,State.MAP,State.DYING].includes(state));
+}
+function toggleMap(){
+  if (state === State.MAP) {
+    session.plans.canvas.hidden = true;
+    sound.paper();
+    resume();
+    return;
+  }
+  if(state!==State.PLAYING||transition)return;
+  if(!session.finds.maps.has(session.map.index)){session.notice('No tienes el mapa de este piso.');return;}
+  session.plans.open(session);
+  sound.paper();setState(State.MAP);
 }
 function changeSetting(key, value) {
   settings[key] = value;
@@ -106,7 +124,7 @@ function menuAction(action) {
   if (state !== State.MENU) return;
   const back = () => menu.close();
   if (action === 'play') {
-    void start();
+    start();
     return;
   }
   if (action === 'options') {
@@ -131,7 +149,7 @@ function menuAction(action) {
     );
   }
 }
-async function start() {
+function start() {
   if (state === State.LOADING) return;
   menu.close();
   transition = null;
@@ -141,7 +159,6 @@ async function start() {
   if (!explicitMute) setSound(true);
   try {
     if (!session) {
-      const { Session } = await import('./core/Session.js');
       if (!engine) throw new Error('WebGL 2 no disponible');
       session = new Session({ engine, assets, input, hud, sound, settings });
     }
@@ -194,6 +211,7 @@ function returnToMenu() {
   menu.buttons[0].focus();
 }
 function gameOver() {
+  hud.fade.classList.remove('active');
   setState(State.GAME_OVER);
   menu.open(
     'GAME OVER',
@@ -206,11 +224,14 @@ function gameOver() {
 }
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.max(0, Math.min((now - last) / 1000, 0.05));
+  const elapsed=Math.max(0,(now-last)/1000);
+  const dt=Math.min(elapsed,.05);
   last = now;
   if (state === State.MENU || state === State.LOADING) menu.render(now / 1000);
+  if(state===State.DYING){if(session.death.update(elapsed))gameOver();return;}
   if (state !== State.PLAYING) return;
   if (transition) {
+    input.look();
     transition.elapsed += dt;
     if (transition.elapsed >= 0.24 && !transition.loaded) {
       session.useStair();
@@ -220,8 +241,8 @@ function frame(now) {
     if (transition.elapsed >= 0.49) transition = null;
     return;
   }
-  session.update(dt);
-  if (session.stats.health <= 0) gameOver();
+  session.update(dt,elapsed);
+  if(session.stats.health<=0){setState(State.DYING);session.startDeath();}
 }
 setState(State.MENU);
 window.addEventListener('resize', () => {

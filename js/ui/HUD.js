@@ -9,7 +9,6 @@ export class HUD {
     this.torch = document.querySelector('#torch-status');
     this.vignette = document.querySelector('#vignette');
     this.wound = document.querySelector('#wound');
-    this.hit = 0;
     this.panic = false;
     this.bars = Object.fromEntries(
       ['health', 'stamina', 'unrest'].map((k) => [
@@ -19,9 +18,7 @@ export class HUD {
     );
     this.motion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
-  update(dt, time, stats, field) {
-    this.hit = Math.max(0, this.hit - dt * 1.8);
-    this.wound.style.opacity = this.hit;
+  update(_dt, time, stats, field) {
     this.vignette.style.opacity = this.panic
       ? this.motion
         ? 0.55 + 0.14 * Math.sin(time * 3)

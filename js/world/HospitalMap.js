@@ -50,6 +50,9 @@ export class HospitalMap {
     this.engine = engine;
     this.geometry = new THREE.BoxGeometry();
     this.cushion = cushionGeometry();
+    this.sightRay = new THREE.Ray();
+    this.sightBox = new THREE.Box3();
+    this.sightHit = new THREE.Vector3();
     this.signPlane = new THREE.PlaneGeometry(1, 1);
     this.transform = new THREE.Object3D();
     this.transform.rotation.order = 'YXZ';
@@ -77,8 +80,8 @@ export class HospitalMap {
     const [x, z] = cellOf(pos);
     return this.floor.areas[this.floor.zones[z]?.[x]]?.[0] || this.floor.base;
   }
-  collider(x, z, halfX, halfZ) {
-    const bounds = [x - halfX, z - halfZ, x + halfX, z + halfZ];
+  collider(x, z, halfX, halfZ, bottom = 0, top = height) {
+    const bounds = [x - halfX, z - halfZ, x + halfX, z + halfZ, bottom, top];
     for (let j = Math.floor(bounds[1] / CELL); j <= Math.floor(bounds[3] / CELL); j++)
       for (let i = Math.floor(bounds[0] / CELL); i <= Math.floor(bounds[2] / CELL); i++) {
         const bin = this.solids[j]?.[i];
@@ -100,6 +103,24 @@ export class HospitalMap {
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
       if (!this.canStand(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t, radius)) return false;
+    }
+    return true;
+  }
+  beamReaches(origin, target) {
+    const ray = this.sightRay;
+    ray.origin.copy(origin);
+    ray.direction.subVectors(target, origin).normalize();
+    const lengthSq = origin.distanceToSquared(target);
+    const [ax, az] = cellOf(origin), [bx, bz] = cellOf(target);
+    for (let z = Math.min(az, bz); z <= Math.max(az, bz); z++) {
+      for (let x = Math.min(ax, bx); x <= Math.max(ax, bx); x++) {
+        for (const [left, near, right, far, bottom, top] of this.solids[z]?.[x] || []) {
+          this.sightBox.min.set(left, bottom, near);
+          this.sightBox.max.set(right, top, far);
+          if (ray.intersectBox(this.sightBox, this.sightHit) &&
+              origin.distanceToSquared(this.sightHit) < lengthSq) return false;
+        }
+      }
     }
     return true;
   }
@@ -160,6 +181,7 @@ export class HospitalMap {
     this.solids = this.floor.grid.map(row => Array.from(row, () => []));
     this.engine.scene.add(this.group);
     this.engine.setFloor(this.floor);
+    this.planEdges=[];
     this.buildShell();
     for (const [x, z, name, directions] of this.floor.boards || []) {
       const p = center([x, z]);
@@ -177,7 +199,9 @@ export class HospitalMap {
       let color = this.floor.lamp;
       if (room === 'Morgue') color = 0x9ab8bb;
       if (room === 'Calderas y generadores') color = 0xe18953;
-      return this.props.fixture(p, i, color);
+      const fixture = this.props.fixture(p, i, color);
+      fixture.softFlicker = index === 1 && room === 'Mantenimiento';
+      return fixture;
     });
     this.lights = Array.from({ length: 4 }, () => {
       const l = new THREE.PointLight(this.floor.lamp, 12, 12, 2);
@@ -246,6 +270,7 @@ export class HospitalMap {
     };
   }
   boundary(x, z, side, type, label) {
+    this.planEdges.push({x,z,side,type});
     const frame = this.face(x, z, side), b = frame.box;
     if (['door', 'arch', 'paddedDoor'].includes(type)) {
       for (const u of [-1.1, 1.1]) {
@@ -353,7 +378,7 @@ export class HospitalMap {
     if (y - halfY > 1.86 || y + halfY < 0.05) return;
     const span = Math.abs(Math.cos(roll)) * w + Math.abs(Math.sin(roll)) * h;
     const c = Math.abs(Math.cos(yaw)), s = Math.abs(Math.sin(yaw));
-    this.collider(x, z, (c * span + s * d) / 2, (s * span + c * d) / 2);
+    this.collider(x, z, (c * span + s * d) / 2, (s * span + c * d) / 2, y - halfY, y + halfY);
   }
   sign(text, x, y, z, angle, width) {
     if (!this.signMaterials.has(text)) {
@@ -411,6 +436,12 @@ export class HospitalMap {
     const near = [...this.lamps].sort((a, b) => a.p.distanceToSquared(player) - b.p.distanceToSquared(player));
     this.electrical = 0;
     for (const f of near) {
+      if (f.softFlicker) {
+        f.level = 0.91 + 0.06 * Math.sin(time * 9) + 0.03 * Math.sin(time * 21);
+        if (f.unstable) f.material.color.copy(f.color).multiplyScalar(f.level);
+        if (f.beam) f.beam.value = 0.18 * f.level;
+        continue;
+      }
       if (!f.unstable) continue;
       if (time >= f.until) {
         const off = f.level > 0.45;

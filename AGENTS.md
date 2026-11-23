@@ -1,0 +1,1 @@
+﻿PROHIBIDO usar Higgsfield, ImageGen o cualquier generador de imágenes por IA. Todo el apartado visual debe construirse mediante geometría 3D low-poly en Three.js, shaders GLSL retro (PS1/DOS) y texturas procedurales pixel-art generadas por código.

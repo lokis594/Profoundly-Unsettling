@@ -18,16 +18,16 @@ export class PlayerStats {
   damage(amount) {
     this.health = clamp(this.health - amount);
   }
-  update(dt, { running, dark, near, chased, oppressive }) {
+  update(dt, { running, dark, near, chased, oppressive, recovering, haunted }) {
     this.stamina = clamp(this.stamina + dt * (running ? -15 : 7.5));
     if (this.stamina === 0) this.exhausted = true;
     if (this.stamina >= 24) this.exhausted = false;
-    const pressure =
-      (dark ? 2.1 : 0) +
-      (near ? 2.6 : 0) +
-      (chased ? 5 : 0) +
-      (oppressive ? 1.35 : 0);
-    this.unrest = clamp(this.unrest + dt * (pressure || -2.4));
+    let rate = dark ? -1 : -7;
+    if (near || chased) {
+      rate = (near ? 2.6 : 0) + (chased ? 5 : 0) + (dark ? 2.1 : 0) + (oppressive ? 1.35 : 0);
+    } else if (recovering) rate = -10;
+    else if (haunted) rate = 2;
+    this.unrest = clamp(this.unrest + dt * rate);
     const panic = this.unrest > 60;
     if (panic !== this.panic) {
       this.panic = panic;

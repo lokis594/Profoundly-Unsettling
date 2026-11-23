@@ -411,9 +411,7 @@ progress::-moz-progress-bar {
   );
 }
 #wound {
-  background:
-    repeating-conic-gradient(#8b1720 0 25%, #511119 0 50%) 0 0 / 6px 6px;
-  mask-image: radial-gradient(ellipse at center, transparent 34%, #0004 53%, #000b 72%, black 91%);
+  z-index: 3;
   pointer-events: none;
 }
 #blackout {
@@ -423,6 +421,14 @@ progress::-moz-progress-bar {
   transition: opacity 0.22s;
   z-index: 5;
 }
+.wordmark canvas, #wound canvas { width:100%; display:block; image-rendering:pixelated; }
+#wound canvas { height:100%; }
+.wordmark canvas { filter:drop-shadow(2px 3px 0 #141213); }
+@media (prefers-reduced-motion:no-preference) {
+  .wordmark canvas { animation: ink-flicker 7s steps(1) infinite; }
+  @keyframes ink-flicker { 0%,97%,99% {opacity:1} 98% {opacity:.88} }
+}
+#floor-plan { position:absolute; inset:0; margin:auto; width:min(92vw,88vh); height:auto; z-index:4; image-rendering:pixelated; box-shadow:0 5px 40px #090807; }
 #blackout.active {
   opacity: 1;
 }

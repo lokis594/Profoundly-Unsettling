@@ -1,3 +1,4 @@
+import { airway } from './OrganicAudio.js';
 const profiles = [
   { root: 32, upper: 58.4, wind: 182, air: 0.095 },
   { root: 43, upper: 68.6, wind: 275, air: 0.065 },
@@ -183,6 +184,29 @@ export class AudioManager {
     this.burst(0.105, 2370 * pitch, 8.5, level * 0.14, draggingFoot ? 0.085 : 0.04);
     this.burst(0.067, 3380 * pitch, 11, level * 0.08, 0.10);
   }
+  cry(dying=false) {
+    airway(this,dying?1.32:.38,[860,1980,3120],dying?.84:.57,dying?310:375);
+    if(dying) airway(this,.69,[390,910,1620],.34,82,.94);
+  }
+  breath(stress=0,relief=false){
+    if(relief) airway(this,1.38,[340,780,1450],.29,26);
+    else {
+      const length=.46-.19*stress;
+      airway(this,length,[860,1550,2250],.19);
+      airway(this,length*1.45,[465,1020,1580],.24,0,length+.055);
+    }
+  }
+  fatal(){
+    this.burst(.31,63,.7,3.1);
+    this.burst(.19,1780,.65,1.4);
+    for(const hz of [1493,2181,2968]) this.burst(.48,hz,13,.68,.035);
+    this.cry(true);
+  }
+  paper(){
+    for(const delay of [0,.047,.12]) this.burst(.088,1700+Math.random()*1300,1.1,.19,delay);
+  }
+  hinge(){this.burst(.12,320,1.4,.55);this.burst(.38,1940,9,.4,.05);}
+  murmur(){airway(this,.69,[330,790,1410],.08,64);}
   nurseImpact() {
     this.burst(0.069, 3240, 6.7, 0.42);
     this.burst(0.085, 1780, 4.2, 0.22, 0.013);
