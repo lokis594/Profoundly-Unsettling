@@ -411,7 +411,10 @@ progress::-moz-progress-bar {
   );
 }
 #wound {
-  background: radial-gradient(ellipse at center, transparent 25%, #8d1820 100%);
+  background:
+    repeating-conic-gradient(#8b1720 0 25%, #511119 0 50%) 0 0 / 6px 6px;
+  mask-image: radial-gradient(ellipse at center, transparent 34%, #0004 53%, #000b 72%, black 91%);
+  pointer-events: none;
 }
 #blackout {
   pointer-events: none;

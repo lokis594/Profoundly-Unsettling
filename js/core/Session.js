@@ -1,5 +1,5 @@
 import { HospitalMap } from '../world/HospitalMap.js';
-import { floors } from '../world/floorsData.js';
+import { floors, sides } from '../world/floorsData.js';
 import { PlayerStats } from '../player/PlayerStats.js';
 import { PlayerController } from '../player/PlayerController.js';
 import { Flashlight } from '../player/Flashlight.js';
@@ -7,10 +7,6 @@ import { spawnEnemy } from '../entities/EnemyBase.js';
 import '../entities/NeedleNurse.js';
 
 export class Session {
-  static async create(context) {
-    await context.assets.load();
-    return new Session(context);
-  }
   constructor({ engine, assets, input, hud, sound, settings }) {
     this.settings = settings;
     this.assets = assets;
@@ -20,7 +16,7 @@ export class Session {
     this.map = new HospitalMap(this.engine, assets);
     this.stats = new PlayerStats();
     this.player = new PlayerController(this.engine.camera, input, this.stats);
-    this.flash = new Flashlight(this.engine.camera);
+    this.flash = new Flashlight(this.engine, assets.textures);
     this.stats.onUnrestThreshold(({ active }) => {
       this.hud.panic = active;
     });
@@ -30,9 +26,8 @@ export class Session {
     this.hud.panic = false;
     this.hud.hit = 0;
     this.age = 0;
-    this.noise = 0;
     if (!this.flash.on) this.flash.toggle();
-    this.loadFloor(1, [4, 7], -Math.PI / 2);
+    this.loadFloor(1, floors[1].start, floors[1].yaw);
   }
   loadFloor(index, cell, yaw) {
     this.nurse?.dispose();
@@ -41,23 +36,20 @@ export class Session {
     this.nurse = spawnEnemy('needle-nurse', {
       map: this.map,
       assets: this.assets,
+      sound: this.sound,
     });
     this.player.place(cell, yaw);
     this.map.update(this.age, this.player.position);
-    this.flash.update(this.age, this.stats.panic);
+    this.flash.update(0, this.age, this.stats.panic, this.player);
     this.engine.render();
   }
   useStair() {
     const stair = this.map.stairNear(this.player.position);
     if (!stair) return false;
     const dest = floors[stair.to];
-    const arrival = dest.stairs.find((s) => s.to === this.map.index);
-    const west = arrival.at[0] < 6;
-    this.loadFloor(
-      stair.to,
-      [arrival.at[0] + (west ? 1 : -1), arrival.at[1]],
-      west ? -Math.PI / 2 : Math.PI / 2,
-    );
+    const arrival = dest.stairs.find((s) => s.link === stair.link && s.to === this.map.index);
+    const [dx, dz] = sides[arrival.side];
+    this.loadFloor(stair.to, [arrival.at[0] - dx, arrival.at[1] - dz], Math.atan2(dx, dz));
     return true;
   }
   update(dt) {
@@ -70,23 +62,11 @@ export class Session {
     );
     if (footstep) this.sound.step(running);
     this.map.update(this.age, this.player.position);
-    this.flash.update(this.age, this.stats.panic);
     const danger = this.nurse.update(dt, this.player, this.flash, (damage) => {
       this.stats.damage(damage);
       this.hud.hit = 0.78;
-      this.sound.tone(158, 33, 0.36, 0.16, 'triangle');
+      this.player.takeHit(this.age);
     });
-    this.noise -= dt;
-    if (danger.near && this.noise <= 0) {
-      this.sound.tone(
-        477,
-        227,
-        0.28,
-        Math.max(0.015, 0.08 - danger.dist * 0.006),
-        'triangle',
-      );
-      this.noise = danger.chased ? 1.25 : 2.4;
-    }
     const room = this.map.room(this.player.position),
       stair = this.map.stairNear(this.player.position);
     this.stats.update(dt, {
@@ -95,7 +75,8 @@ export class Session {
       ...danger,
       oppressive: this.map.floor.oppressive.includes(room),
     });
-    this.sound.update(this.stats.unrest, this.map.electrical);
+    this.flash.update(dt, this.age, this.stats.panic, this.player);
+    this.sound.update(this.stats.unrest, this.map.electrical, danger);
     this.hud.update(dt, this.age, this.stats, {
       room,
       floor: this.map.floor.id,

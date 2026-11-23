@@ -116,7 +116,7 @@ function menuAction(action) {
   if (action === 'credits') {
     menu.open(
       'CREDITS',
-      '<p><b>PROFOUNDLY UNSETTLING</b><br>Prototipo de terror psicológico · V0.1</p><p>Motor 3D: Three.js. Escenario, materiales, sonido y diseño de juego creados para este prototipo. Fachada y sonido procedurales. Sprite original de la enfermera creado con OpenAI ImageGen.</p>' +
+      '<p><b>PROFOUNDLY UNSETTLING</b><br>Prototipo de terror psicológico · V0.1</p><p>Motor 3D: Three.js. Escenario, materiales, sonido y diseño de juego creados para este prototipo. Fachada, enfermera articulada y sonido procedurales.</p>' +
         button('back', 'VOLVER'),
       { back },
       back,
@@ -143,7 +143,7 @@ async function start() {
     if (!session) {
       const { Session } = await import('./core/Session.js');
       if (!engine) throw new Error('WebGL 2 no disponible');
-      session = await Session.create({ engine, assets, input, hud, sound, settings });
+      session = new Session({ engine, assets, input, hud, sound, settings });
     }
     session.reset();
     resume();

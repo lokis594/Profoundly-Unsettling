@@ -1,6 +1,6 @@
 # PROFOUNDLY UNSETTLING
 
-Prototipo V0.1 de terror psicológico en primera persona. Empiezas en la recepción del hospital. Puedes explorar sus cuatro plantas, escapar de la Enfermera de Agujas y volver a la recepción por las mismas escaleras. El alcance de esta versión es la exploración y la supervivencia libre.
+Prototipo V0.1 de terror psicológico en primera persona. Empiezas junto a la entrada sur del Outpatient Hall. Puedes explorar sus cuatro plantas, escapar de la Enfermera de Agujas y volver al vestíbulo por las escaleras. El alcance de esta versión es la exploración y la supervivencia libre.
 
 ## Ejecutar en local
 
@@ -14,7 +14,7 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 En Windows puedes usar `py -3 -m http.server 8000 --bind 127.0.0.1`. Abre **http://127.0.0.1:8000/** y pulsa **PLAY**. Sirve la carpeta por HTTP para que el navegador pueda resolver los módulos ES. Para cerrar el servidor, pulsa Ctrl+C en la terminal.
 
-Para ver la versión de la enfermera con malla tridimensional, abre **http://127.0.0.1:8000/?enemy=3d**. La vista predeterminada usa el sprite frontal orientado a la cámara. Las dos representaciones comparten IA, navegación y daño.
+La Enfermera de Agujas utiliza un modelo articulado en 3D. El sonido de sus pies y agujas sigue el desplazamiento de cada paso.
 
 ## Controles
 
@@ -32,7 +32,7 @@ Para ver la versión de la enfermera con malla tridimensional, abre **http://127
 
 ## Recorrido de verificación
 
-1. En recepción empiezas mirando hacia el pasillo central. La escalera que queda a tu espalda lleva a B1. La que hay al otro extremo del pasillo lleva a P2. Sigue hasta P3 por la salida opuesta de P2. Recorre el camino inverso. El distintivo de planta y los rótulos de sala cambian durante el recorrido.
+1. Desde el vestíbulo sur encontrarás los mostradores al este y las dos farmacias al norte. El pasillo detrás de los consultorios comunica las alas oeste y este. Las escaleras del suroeste y del centro-este bajan a B1. Las de la unión oeste y del noreste suben a F2. En hospitalización hay que rodear las camillas por las salas 201 y 202. La escalera del extremo sureste de F2 lleva a F3.
 2. Alterna F y sigue el indicador de la linterna. Corre hasta agotar la energía. Al caminar o detenerte se recupera. Puedes volver a correr cuando alcance el 24 %.
 3. Apaga la linterna en una zona tranquila y observa **INQUIETUD**. Parte del 0 % y crece con la oscuridad, la proximidad de la enfermera y ciertas salas. Por encima del 60 % aparecen viñeta, temblor de cámara, parpadeo, latidos y un pitido que aumenta con la inquietud. Con luz y lejos del peligro, la inquietud desciende.
 4. Acércate a la enfermera o alúmbrala con visión despejada. Tras la alerta comienza a perseguirte. Cada ataque a corta distancia resta 18 puntos. A cero de salud aparece **GAME OVER**. **REINICIAR** restablece las estadísticas y la posición.
@@ -45,7 +45,7 @@ La salud, energía, inquietud y linterna se conservan al usar las escaleras. Cad
 1. Guarda el contenido del proyecto en una rama del repositorio con `index.html`, `css/`, `js/` y `assets/` en la raíz. Si trabajas con el ZIP, extrae la carpeta y sube su **contenido**. Incluye el archivo `.nojekyll`.
 2. En el repositorio, abre **Settings → Pages → Build and deployment**. En **Source**, elige **Deploy from a branch**.
 3. Selecciona la rama que contiene el prototipo y **/(root)**. Pulsa **Save**.
-4. Cuando el despliegue termine, abre **Visit site** en esa misma pantalla. Para este repositorio, con el dominio predeterminado, la dirección esperada es `https://lokis594.github.io/Profoundly-Unsettling/`. Añade `?enemy=3d` a la URL para cargar la malla.
+4. Cuando el despliegue termine, abre **Visit site** en esa misma pantalla. Para este repositorio, con el dominio predeterminado, la dirección esperada es `https://lokis594.github.io/Profoundly-Unsettling/`.
 5. Comprueba **PLAY**, F y una escalera. Todos los módulos y activos del juego usan rutas relativas compatibles con el subdirectorio de Pages.
 
 ## Arquitectura
@@ -58,10 +58,10 @@ La salud, energía, inquietud y linterna se conservan al usar las escaleras. Cad
 | `js/world/HospitalMap.js` | Construye las mallas por instancias, gestiona la cuadrícula de colisiones, la búsqueda de rutas por anchura y la visibilidad. Los recursos exclusivos de cada planta se liberan al salir. |
 | `js/world/HospitalProps.js` | Mobiliario, fluorescentes y geometría de haces de luz. |
 | `js/player/` | Movimiento, colisiones AABB, oscilación de cámara, estadísticas y linterna. |
-| `js/entities/` | Clase base, registro de tipos y máquina de estados PATROL → ALERT → CHASE → ATTACK con pérdida de contacto y vuelta a patrulla. |
+| `js/entities/` | Navegación, articulaciones y animación de patrulla, alerta, persecución y ataque. El método `playDamageAnimation()` interrumpe la acción y reproduce un retroceso. |
 | `js/ui/` | Fachada 3D del menú, opciones persistentes, pantalla de cierre, HUD y efectos de inquietud. |
 
-Para ampliar una planta, edita los rectángulos de salas y pasillos de `floorsData.js`. Un rectángulo incluye ambos extremos. Un nodo de patrulla o escalera debe estar en una celda transitable. Los obstáculos de mobiliario ocupan una celda. Las escaleras llevan un índice de destino y necesitan una entrada recíproca en la planta vecina.
+Para ampliar una planta, edita los rectángulos de salas y pasillos de `floorsData.js`. Un rectángulo incluye ambos extremos. Un nodo de patrulla o escalera debe estar en una celda transitable. Cada sala tiene un perímetro propio. Las entradas en `edges` abren huecos o colocan ventanillas en sus límites. El mapa comprueba las dimensiones del mobiliario, los marcos y los muros al calcular rutas. Cada escalera tiene un identificador compartido con el rellano de destino.
 
 Para añadir un enemigo, extiende `EnemyBase`, regístralo con `registerEnemy(nombre, clase)` e importa el módulo antes de llamar a `spawnEnemy(nombre, contexto)`. La sesión inyecta el mapa y el gestor de recursos.
 
